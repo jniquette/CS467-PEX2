@@ -1,3 +1,4 @@
+package org.niquette.cs467pex2client;
 import java.net.*;
 import java.nio.charset.Charset;
 import java.io.*;
@@ -12,6 +13,8 @@ public class TCPClientConnection {
 	private Socket		   socket;
 	private OutputStream   out;
 	private InputStream	   in;
+	public int serverPort;
+	public String serverName;
 
 	// -------------------------------------------------------------------
 	/**

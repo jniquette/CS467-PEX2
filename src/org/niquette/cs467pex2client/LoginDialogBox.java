@@ -1,6 +1,8 @@
+package org.niquette.cs467pex2client;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.LinkedList;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -10,7 +12,7 @@ import javax.swing.border.EmptyBorder;
 // and initiates a connection to the SIGNOUT server.
 
 // Written by; Dr. Wayne Brown, Fall 2014
-// Modified by:
+// Modified by: C2C Justin Niquette, Fall 2014
 
 public class LoginDialogBox implements ActionListener {
 
@@ -26,9 +28,9 @@ public class LoginDialogBox implements ActionListener {
 	
 	// GUI field names and default values
 	private static String [] serverFieldNames = { "URL: ", "Port: " };
-	private static String [] serverDefaultInputs = { "localhost", "12345" };
+	private static String [] serverDefaultInputs = { "cdx.martincarlisle.com", "12345" };
 	private static String [] userFieldNames = { "First name: ", "Last name: ", "Password: " };
-	private static String [] userDefaultInputs = { "Fred", "Smith", "1234" };
+	private static String [] userDefaultInputs = { "Justin", "Niquette", "1656" };
 
 	// GUI components needed by the actionPerformed method.
 	private JFrame frame;
@@ -150,6 +152,8 @@ public class LoginDialogBox implements ActionListener {
 				serverPort = 12345; // Default port
 			}
 			
+			TCPClientConnection con = new TCPClientConnection(serverName, serverPort);
+			
 			User user = new User(userInputs[0].getText().trim(),  // firstName 
 					             userInputs[1].getText().trim(),  // lastName
 					             userInputs[2].getText().trim()); // password
@@ -160,6 +164,10 @@ public class LoginDialogBox implements ActionListener {
 			// TODO: Start a thread to handle the client communication with the server
 			// If the new thread can login to the server, it should start a
 			// SignoutWindow.
+			
+			Thread signoutThread = new Thread((Runnable) new SignoutWindow(new LinkedList<CadetStatus>(), con, user));
+			signoutThread.start();
+			
 
 		}
 	}

@@ -1,3 +1,4 @@
+package org.niquette.cs467pex2client;
 /**
  * TCP Example Client Application
  * 

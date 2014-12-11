@@ -1,3 +1,4 @@
+package org.niquette.cs467pex2client;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -18,7 +19,7 @@ import org.jdatepicker.impl.UtilDateModel;
 // a CadetStatus object.
 
 // Written by; Dr. Wayne Brown, Fall 2014
-// Modified by:
+// Modified by: C2C Justin Niquette
 
 public class ActivityDialogBox implements ActionListener {
 

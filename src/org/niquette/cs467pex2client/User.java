@@ -1,3 +1,4 @@
+package org.niquette.cs467pex2client;
 // Create a user for the SIGNOUT system
 
 // Written by: Dr. Wayne Brown, Fall 2014

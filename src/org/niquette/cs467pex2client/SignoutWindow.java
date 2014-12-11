@@ -1,3 +1,4 @@
+package org.niquette.cs467pex2client;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -12,29 +13,29 @@ import javax.swing.table.DefaultTableModel;
 // status records and contains a menu for user actions.
 
 // Written by: Dr. Wayne Brown, Fall 2014
-// Modified by:
+// Modified by: C2C Justin Niquette, Fall 2014
 
-public class SignoutWindow implements ActionListener {
+public class SignoutWindow implements ActionListener, Runnable {
 
 	// Uncomment this main program if you want to run the GUI by itself
 	
-/*	public static void main(String[] args) {
-        //Schedule a job for the event-dispatching thread:
-        //creating and showing this application's GUI.
-        javax.swing.SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-        		// Add bogus data to the statusList for debugging.
-            	LinkedList<CadetStatus> statusList = new LinkedList<CadetStatus>();
-        		statusList.add( new CadetStatus("Fred", "Smith", "2014/09/10 @ 1245 Wed", "2014/09/11 @ 1500 Thu", "2014/09/12 @ 0930 Fri", "Home") );
-        		statusList.add( new CadetStatus("Wayne", "Brown", "2014/09/10 @ 1245 Wed", "2014/09/10 @ 1245 Wed", "2014/09/10 @ 1245 Wed", "TDY Football") );
-        		statusList.add( new CadetStatus("Sandy", "Willis", "2014/09/10 @ 1245 Wed", "2014/09/10 @ 1245 Wed", "2014/09/10 @ 1245 Wed", "Soccor game") );
-        		statusList.add( new CadetStatus("Mary", "Santhouse", "2014/09/10 @ 1245 Wed", "2014/09/10 @ 1245 Wed", "2014/09/10 @ 1245 Wed", "To sponsers house") );
+//	public static void main(String[] args) {
+//        //Schedule a job for the event-dispatching thread:
+//        //creating and showing this application's GUI.
+//        javax.swing.SwingUtilities.invokeLater(new Runnable() {
+//            public void run() {
+//        		// Add bogus data to the statusList for debugging.
+//            	LinkedList<CadetStatus> statusList = new LinkedList<CadetStatus>();
+//        		statusList.add( new CadetStatus("Fred", "Smith", "2014/09/10 @ 1245 Wed", "2014/09/11 @ 1500 Thu", "2014/09/12 @ 0930 Fri", "Home") );
+//        		statusList.add( new CadetStatus("Wayne", "Brown", "2014/09/10 @ 1245 Wed", "2014/09/10 @ 1245 Wed", "2014/09/10 @ 1245 Wed", "TDY Football") );
+//        		statusList.add( new CadetStatus("Sandy", "Willis", "2014/09/10 @ 1245 Wed", "2014/09/10 @ 1245 Wed", "2014/09/10 @ 1245 Wed", "Soccor game") );
+//        		statusList.add( new CadetStatus("Mary", "Santhouse", "2014/09/10 @ 1245 Wed", "2014/09/10 @ 1245 Wed", "2014/09/10 @ 1245 Wed", "To sponsers house") );
+//
+//        		new SignoutWindow(statusList, null, new User("Fred", "Smith", "1234"));
+//            }
+//        });
+//	}
 
-        		new SignoutWindow(statusList, null, new User("Fred", "Smith", "1234"));
-            }
-        });
-	}
-*/	
 	public static boolean isAlive;
 	
 	private JFrame frame;
@@ -50,16 +51,23 @@ public class SignoutWindow implements ActionListener {
 	private TCPClientConnection connection;
 	
 	private User user;
+	
+	private Thread keepAliveThread;
+	
 
-	//-----------------------------------------------------------------
-	// TODO: pass in appropriate data
+	@Override
+	public void run() {
+		//Nothing required here since SignoutWindow is already created
+	}
+
+
 	public SignoutWindow(LinkedList<CadetStatus> statusList, TCPClientConnection serverConnection, User user ) {
 		// Create the application window
 		frame = new JFrame();
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setSize(new Dimension(840, 480));
 		frame.setLocation(100,100);
-		frame.setTitle("Cadet Sign Out");
+		frame.setTitle("Cadet Sign Out: " + user.firstName+" "+user.lastName);
 		frame.setLayout(new BorderLayout());
 
 		// Create a JPanel for the entire window and set a border around it.
@@ -143,6 +151,8 @@ public class SignoutWindow implements ActionListener {
 		isAlive = true;
 		connection = serverConnection;
 		this.user = user;
+		
+		connectToServer();
 	}
 
 	//-----------------------------------------------------------------
@@ -268,6 +278,17 @@ public class SignoutWindow implements ActionListener {
 	public void redrawTable() {
 		table.repaint();
 	}
+	
+	private void connectToServer() {
+		String loginString = "LOGIN:"+user.firstName+":"+user.lastName+":"+user.password+"|";
+		System.out.println(loginString);
+		connection.sendMessage(loginString);
+		
+		String response = connection.receiveMessage();
+		System.out.println(response);
+		
+	}
+
 
 }
 
