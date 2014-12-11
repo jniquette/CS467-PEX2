@@ -287,6 +287,15 @@ public class SignoutWindow implements ActionListener, Runnable {
 		String response = connection.receiveMessage();
 		System.out.println(response);
 		
+		if(response.startsWith("VALID_LOGIN|")){
+			System.out.println("Valid Login Received");
+		}
+		else{
+			System.out.println("Login Failed");
+			this.frame.dispose();
+			new LoginDialogBox();
+		}
+		
 	}
 
 
