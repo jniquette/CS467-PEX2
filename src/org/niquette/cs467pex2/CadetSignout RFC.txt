@@ -1,0 +1,234 @@
+
+CADET SIGNOUT PROTOCOL – 1.0
+
+1. Introduction 
+
+    This RFC describes a protocol for an "electronic cadet signout
+    system". For the remainder of this document this system will be
+    referred to by the name SIGNOUT. The system will allow cadets and
+    squadron leadership to electronically track the whereabouts of cadets
+    in a squadron. 
+
+    A SIGNOUT server has a list of valid users. Users are uniquely 
+    recognized by their first name, last name, and a password. When a
+    client connects to the server, it must login with valid
+    credentials. If their credentials are not valid, the server sends
+    an error message to the client and then terminates its connection
+    with the client. If the credentials are valid, the client is sent all
+    current records in the SIGNOUT system.
+
+    A SIGNOUT server runs 24/7 and is continually listening for new
+    connections. When a client first contacts to the server, a new TCP 
+    connection is created between the client and the server and this 
+    connection is serviced in a separate thread. The connection thread 
+    will initially send all current records to the client and then wait
+    for client requests. When a client sends a LOG request to update
+    their status, the server updates the associated cadet's status and
+    sends an UPDATE to all other clients that are currently connected to
+    the server.
+
+    All messages are transmitted using the TCP protocol, which provides
+    accurate and reliable messaging. All messages are encrypted to
+    protect privacy.
+
+    Appropriate time-outs are used to close connections to clients that
+    have not communicated to the server in a reasonable amount of time. 
+ 
+2. Overall Operation 
+
+    A SIGNOUT client sends a LOGIN request to a SIGNOUT server using TCP.
+    If the login information is correct, the server responds with a
+    VALID_LOGIN message followed by a series of UPDATE messages
+    containing all the current SIGNOUT records. It the login fails, the
+    server sends a rejection message and terminates the TCP connection.
+
+       CLIENT  ------------(login request)--------> SERVER 
+       CLIENT  <-----------(login response)-------- SERVER 
+
+       CLIENT  <-----------(UPDATE1 message)------- SERVER 
+       CLIENT  <-----------(UPDATE2 message)------- SERVER 
+       CLIENT  <-----------(UPDATE3 message)------- SERVER
+       ... 
+       CLIENT  <-----------(UPDATEN message)------- SERVER 
+
+    After successful login, the client listens for UPDATE and DELETE
+    messages from the server and sends KEEP_ALIVE, LOG, DELETE and
+    LOGOUT messages to the server. 
+
+       CLIENT  <-----------(UPDATE messages)------- SERVER
+ 
+       CLIENT  ------------(LOG messages)---------> SERVER 
+       CLIENT  ------------(DELETE messages)------> SERVER 
+       CLIENT  ------------(KEEP_ALIVE messages)--> SERVER 
+       CLIENT  ------------(LOGOUT messages)------> SERVER 
+
+    In reverse fashion, after successful login, each active socket on
+    the server continuously listens for KEEP_ALIVE, LOG and LOGOUT
+    messages from its clients. If a LOG message is received, the
+    server sends an associated UPDATE message to every active client.
+ 
+       CLIENT  -----(LOG messages)----------------> SERVER 
+       CLIENT  -----(DELETE messages)-------------> SERVER 
+
+       CLIENT1 <----(UPDATE message)--------------- SERVER 
+       CLIENT2 <----(UPDATE message)--------------- SERVER 
+       CLIENT3 <----(UPDATE message)--------------- SERVER
+       ... 
+       CLIENTN <----(UPDATE message)--------------- SERVER 
+
+
+3. Message Format 
+
+    All communications in the SIGNOUT system are sent as encrypted byte
+    arrays. Before encryption and after decryption, all messages are
+    strings of textual data as specified in section 4 below.
+
+    All messages end with a vertical bar ('|') which marks the end of one
+    message from the beginning of the next message.
+
+    The characters ':' and '|' are used to delimit data values and
+    messages (respectively). Therefore, it is important that these
+    characters not be present in data fields. It can be assumed that
+    these characters never appear in the user name fields or the
+    time fields. If either of these characters appear in an activity or
+    password field, they must be replaced with their associated HTML
+    code string before the data is sent to the server. Failure to do this
+    will possibly corrupt the server’s data stream. The replacement
+    strings are:
+
+      ':'    &#58;
+      '|'    &#124;
+
+    All date/time values are represented as a string using this format:
+        YYYY/MM/DD @ HHmm WWW
+    where:
+        YYYY is a 4 digit year
+        MM is a 2 digit month (1-12)
+        DD is a 2 digit day of the month (1-31)
+        HH is the hour (0-23)
+        mm is the minutes (0-59)
+        WWW is 3 letters for the day of the week (Sun, Mon, ...) 
+    This format is used so that the sorting of dates as text strings 
+    orders them in correct time order.
+ 
+    All messages are case sensitive.
+
+4. Commands/Messages Syntax
+
+    4.1 LOGIN messages and their response
+
+        A SIGNOUT client sends a login request to the server with the
+        string:
+
+           "LOGIN:firstName:lastName:password|"
+
+        where the firstName, lastName and password are client supplied
+        data values.
+
+        The SIGNOUT server responses with one of two possible responses:
+
+           1) "INVALID_LOGIN|"
+
+              because no matching user was identified
+
+           2) "VALID_LOGIN|"
+              
+              because the client has successfully logged in. Note that 
+              immediately following a valid login, a series of UPDATE
+              messages are sent to the client, one for each server
+              record. 
+
+    4.2 LOG message
+
+        A SIGNOUT client sends a LOG message to the server using the
+        following string, where the departTime, returnTime, and activity
+        values are user specified.
+        Notes: The client's name is known from the login.
+               The postTime value is set by the server. 
+               Therefore, a client can only log a record associated with
+               its name and it can’t manipulate the postTime value.
+
+           "LOG:departTime:returnTime:activity|"
+
+        The SIGNOUT server does not respond to LOG messages. 
+
+    4.3 KEEP_ALIVE message
+
+        SIGNOUT clients must send at least one message to a SIGNOUT
+        serve every 120 seconds to maintain its connection. If there are
+        no user specified messages to send to the server, the client
+        must send a KEEP_ALIVE message to the server with the string:
+
+           "KEEP_ALIVE|"
+
+        Since TCP messages are buffered, it is important that the client
+        flush its output buffer after sending a KEEP_ALIVE message to
+        guarantee that the message arrives within the required time
+        limits. It is recommended that a client only wait half the time
+        limit to guarantee that the connection remains open.
+          
+        The SIGNOUT server does not respond to KEEP_ALIVE messages. If
+        120 seconds has elapsed without any messages from a SIGNOUT
+        client, the server will assume the client has terminated
+        execution and it will terminate its connection with the client.
+        Any future communication by the client to the server must open
+        a new connection and initiate a new LOGIN request message.
+
+    4.4 UPDATE message
+
+        When the SIGNOUT server receives a LOG message from any client,
+        it updates its records and then sends an UPDATE message to every
+        active client with the new information. The UPDATE message has
+        the format:
+
+     "UPDATE:firstName:lastName:postTime:departTime:returnTime:activity|"
+
+        where the firstName, lastName, postTime, departTime, returnTime
+        and activity are values from the associated record.
+
+        Clients do not respond to UPDATE messages.
+
+        If the timeStamp fields is set to DELETE, as in:
+
+           "UPDATE:firstName:lastName:DELETE:departTime:returnTime:activity|"
+
+        the associated cadet’s record is removed from the client's records.
+
+    4.5 DELETE message
+
+        A DELETE message removes a record from the the SIGNOUT
+        system. A SIGNOUT server only processes DELETE messages 
+        that match a client's firstName, lastName and password.
+
+           "DELETE:firstName:lastName:password|"
+
+        If the CLIENT_DELETE message is accepted by the server, the 
+        server sends an UPDATE message to every active client, where 
+        the timeStamp field is set to DELETE. (See above.)
+
+    4.6 LOGOUT message
+
+        Immediately before a SIGNOUT client terminates it execution it
+        should send a LOGOUT message to the server:
+
+	      "LOGOUT|"
+
+         The server does not respond to a LOGOUT message but it does
+         close its TCP connection to the client and remove the client
+         from any future communications.
+
+         After a client sends a LOGOUT message it should close its TCP
+         connection and not attempt to communicate with the server again.
+
+         Note: If the client fails to send a LOGOUT message, the server
+         will automatically terminate its connection to the client after
+         120 seconds of no incoming messages.
+
+ 
+5 Author(s)
+
+Dr. Wayne Brown
+Maj Greg Brault 
+USAF Academy Department of Computer Science
+2354 Faculty Drive USAF Academy, CO 80840 
+Phone: 719-333-3590
