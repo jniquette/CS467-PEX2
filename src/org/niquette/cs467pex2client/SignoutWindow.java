@@ -3,7 +3,9 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.LinkedList;
+import java.util.TimerTask;
 import java.util.Vector;
+import java.util.Timer;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -52,7 +54,7 @@ public class SignoutWindow implements ActionListener, Runnable {
 	
 	private User user;
 	
-	private Thread keepAliveThread;
+	private Thread listenerThread;
 	
 
 	@Override
@@ -152,7 +154,24 @@ public class SignoutWindow implements ActionListener, Runnable {
 		connection = serverConnection;
 		this.user = user;
 		
-		connectToServer();
+		if(connectToServer()){
+
+//			updateThread = new Thread((Runnable) new UpdateThread(serverConnection));
+//			updateThread.start();
+			
+			//Create the Keep Alive Thread Timer
+			TimerTask updateTask = new UpdateThread(connection);
+			Timer updateTimer = new Timer();
+			updateTimer.schedule(updateTask, 5000, 5000);
+			
+
+			
+			
+			System.out.println("Timertask enabled");
+			
+			
+		}
+		//Otherwise this thread will exit itself and go back to the login.
 	}
 
 	//-----------------------------------------------------------------
@@ -279,7 +298,7 @@ public class SignoutWindow implements ActionListener, Runnable {
 		table.repaint();
 	}
 	
-	private void connectToServer() {
+	private boolean connectToServer() {
 		String loginString = "LOGIN:"+user.firstName+":"+user.lastName+":"+user.password+"|";
 		System.out.println(loginString);
 		connection.sendMessage(loginString);
@@ -289,11 +308,13 @@ public class SignoutWindow implements ActionListener, Runnable {
 		
 		if(response.startsWith("VALID_LOGIN|")){
 			System.out.println("Valid Login Received");
+			return true;
 		}
 		else{
 			System.out.println("Login Failed");
 			this.frame.dispose();
 			new LoginDialogBox();
+			return false;
 		}
 		
 	}
